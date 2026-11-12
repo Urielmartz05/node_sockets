@@ -3,35 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <title>Chat con Node.js y Sockets</title>
-
-    <!-- NUEVO: estilos para mensajes propios y ajenos
-    <style>
-        #mensajes { list-style: none; padding: 0; }
-        #mensajes li { max-width: 60%; margin: 4px 0; padding: 8px 12px; border-radius: 12px; }
-        .propio { background: #dcf8c6; margin-left: auto; text-align: right; }
-        .ajeno { background: #eee; margin-right: auto; }
-    </style>
-    -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Chat en tiempo real</h1>
+    
+    <div class="app-container">
 
-    <input
-        type="text"
-        id="mensaje"
-        placeholder="Escribe un mensaje..."
-    >
-    <button onclick="enviarMensaje()">
-        Enviar
-    </button>
+        <div class="chat-head">
+            <svg class="chat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clip-rule="evenodd" />
+            </svg>
+            <span id="contacto-nombre"></span>
+        </div>
 
-    <ul id="mensajes"></ul>
+        <div class="messages-container">
+            <ul id="mensajes"></ul>
+        </div>
+        
+        <div class="send-container">
+            <input
+            type="text"
+            id="mensaje"
+            placeholder="Escribe un mensaje..."
+            >
+            <button onclick="enviarMensaje()">
+                Enviar
+            </button>
+        </div>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
 
     <script>
         // Conectar con el servidor
         const socket = io();
+        const miNombre = prompt("Ingresa tu nombre:")?.trim() || "Anónimo";
+
+        socket.on("connect", () => {
+            socket.emit("registrar", miNombre);
+        });
+
+        socket.on("usuarios", (usuarios) => {
+            const otros = Object.entries(usuarios)
+                .filter(([id]) => id !== socket.id)
+                .map(([, nombre]) => nombre);
+
+            document.getElementById("contacto-nombre").textContent = otros.join(", ");
+        });
 
         // Enviar mensaje
         function enviarMensaje() {
@@ -44,23 +62,23 @@
         }
 
         // Recibir mensajes
-        socket.on("mensaje", (texto) => {
-            const lista = document.getElementById("mensajes");
-            const item = document.createElement("li");
-
-            item.textContent = texto;
-            lista.appendChild(item);
-        });
-
-        // NUEVO: recibir {id, texto} y asignar clase según quién envió
-        // socket.on("mensaje", ({ id, texto }) => {
+        // socket.on("mensaje", (texto) => {
         //     const lista = document.getElementById("mensajes");
         //     const item = document.createElement("li");
         //
         //     item.textContent = texto;
-        //     item.classList.add(id === socket.id ? "propio" : "ajeno");
         //     lista.appendChild(item);
         // });
+
+        // NUEVO: recibir {id, texto} y asignar clase según quién envió
+        socket.on("mensaje", ({ id, texto }) => {
+            const lista = document.getElementById("mensajes");
+            const item = document.createElement("li");
+        
+            item.textContent = texto;
+            item.classList.add(id === socket.id ? "propio" : "ajeno");
+            lista.appendChild(item);
+        });
     </script>
 </body>
 </html>
